@@ -1,7 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
+import InteractiveCurve from './InteractiveCurve';
 
 const Results = ({ results, materialName, hideGraph }) => {
   const isMathematical = results.method === 'Mathematical';
+  const [useInteractive, setUseInteractive] = useState(true);
+  
+  // Check if chartData is available for interactive mode
+  const hasChartData = results.chartData && results.chartData.strain;
   
   return (
     <div>
@@ -93,12 +98,48 @@ const Results = ({ results, materialName, hideGraph }) => {
         </div>
       </div>
 
-      {results.graphData && !hideGraph && (
+      {/* Graph section with toggle */}
+      {!hideGraph && (results.graphData || hasChartData) && (
         <div className="graph-container">
-          <h3 style={{ marginBottom: '15px', color: '#667eea' }}>
-            Stress-Strain Curve ({results.method} Analysis)
-          </h3>
-          <img src={results.graphData} alt="Stress-Strain Curve" />
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            marginBottom: '15px'
+          }}>
+            <h3 style={{ margin: 0, color: '#667eea' }}>
+              Stress-Strain Curve ({results.method} Analysis)
+            </h3>
+            
+            {/* Toggle between interactive and static */}
+            {hasChartData && results.graphData && (
+              <div className="chart-toggle">
+                <button 
+                  className={`toggle-btn ${useInteractive ? 'active' : ''}`}
+                  onClick={() => setUseInteractive(true)}
+                >
+                  📈 Interactive
+                </button>
+                <button 
+                  className={`toggle-btn ${!useInteractive ? 'active' : ''}`}
+                  onClick={() => setUseInteractive(false)}
+                >
+                  🖼️ Static
+                </button>
+              </div>
+            )}
+          </div>
+          
+          {/* Render interactive or static chart */}
+          {useInteractive && hasChartData ? (
+            <InteractiveCurve 
+              chartData={results.chartData}
+              method={results.method}
+              materialName={materialName}
+            />
+          ) : results.graphData ? (
+            <img src={results.graphData} alt="Stress-Strain Curve" />
+          ) : null}
         </div>
       )}
     </div>

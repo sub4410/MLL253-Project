@@ -5,9 +5,15 @@ import ParametersForm from './components/ParametersForm';
 import Results from './components/Results';
 import ComparisonResults from './components/ComparisonResults';
 import MaterialSelector from './components/MaterialSelector';
+import ExportPanel from './components/ExportPanel';
+import ClusteringPanel from './components/ClusteringPanel';
+import SessionManager from './components/SessionManager';
+import Tutorial from './components/Tutorial';
+import ComparisonChart from './components/ComparisonChart';
+import ThemeToggle, { ThemeProvider } from './components/ThemeToggle';
 import axios from 'axios';
 
-function App() {
+function AppContent() {
   const [parameters, setParameters] = useState({
     outputDecimalPlaces: 3,
     smoothingWindow: 11,
@@ -25,6 +31,13 @@ function App() {
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  
+  // New feature states
+  const [showExport, setShowExport] = useState(false);
+  const [showClustering, setShowClustering] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(() => {
+    return !localStorage.getItem('tutorialCompleted');
+  });
 
   const handleFileUpload = (uploadedFile) => {
     setPendingFile(uploadedFile);
@@ -160,8 +173,30 @@ function App() {
     }
   };
 
+  // Session management
+  const handleLoadSession = (sessionData) => {
+    if (sessionData.parameters) {
+      setParameters(sessionData.parameters);
+    }
+    if (sessionData.materials) {
+      setAllResults(sessionData.materials);
+      if (sessionData.materials.length >= 2) {
+        generateComparison(sessionData.materials);
+      }
+    }
+  };
+
   return (
     <div className="App">
+      {/* Tutorial */}
+      <Tutorial 
+        isFirstVisit={showTutorial} 
+        onComplete={() => setShowTutorial(false)} 
+      />
+
+      {/* Theme Toggle */}
+      <ThemeToggle />
+
       <header className="app-header">
         <h1>🔬 Stress-Strain Analyzer</h1>
         <p>Analyze and compare mechanical properties of multiple materials</p>
@@ -170,6 +205,13 @@ function App() {
             📁 {allResults.length}/10 materials loaded
           </div>
         )}
+        
+        {/* Session Manager in Header */}
+        <SessionManager 
+          materials={allResults}
+          parameters={parameters}
+          onLoadSession={handleLoadSession}
+        />
       </header>
 
       {error && (
@@ -261,7 +303,43 @@ function App() {
               {allResults.length < 10 && (
                 <p className="add-more-hint">+ Add more files to compare (up to 10)</p>
               )}
+              
+              {/* Action buttons for loaded materials */}
+              {allResults.length >= 1 && (
+                <div className="material-actions">
+                  <button 
+                    className="action-btn export"
+                    onClick={() => setShowExport(!showExport)}
+                  >
+                    📤 Export
+                  </button>
+                  {allResults.length >= 2 && (
+                    <button 
+                      className="action-btn cluster"
+                      onClick={() => setShowClustering(!showClustering)}
+                    >
+                      🔮 Cluster
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
+          )}
+          
+          {/* Export Panel */}
+          {showExport && (
+            <ExportPanel 
+              materials={allResults} 
+              onClose={() => setShowExport(false)} 
+            />
+          )}
+          
+          {/* Clustering Panel */}
+          {showClustering && allResults.length >= 2 && (
+            <ClusteringPanel 
+              materials={allResults} 
+              onClose={() => setShowClustering(false)} 
+            />
           )}
         </div>
 
@@ -282,6 +360,12 @@ function App() {
                 <Results results={allResults[0].results} materialName={allResults[0].name} />
               ) : (
                 <>
+                  {/* Interactive Comparison Chart */}
+                  <div className="comparison-section">
+                    <h2>📈 Interactive Comparison</h2>
+                    <ComparisonChart materials={allResults} />
+                  </div>
+                  
                   {/* Comparison Section */}
                   <ComparisonResults 
                     materials={allResults} 
@@ -319,8 +403,10 @@ function App() {
                 <ul>
                   <li>Analyze up to 10 materials</li>
                   <li>Compare mechanical properties</li>
-                  <li>Visual comparison charts</li>
-                  <li>Mathematical or ML analysis</li>
+                  <li>Interactive Plotly charts</li>
+                  <li>Export to PDF/Excel/JSON</li>
+                  <li>ML-based clustering</li>
+                  <li>Save/Load sessions</li>
                 </ul>
               </div>
             </div>
@@ -328,6 +414,14 @@ function App() {
         </div>
       </div>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
   );
 }
 
